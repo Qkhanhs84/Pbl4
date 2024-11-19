@@ -11,10 +11,7 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 
-import java.io.ByteArrayInputStream;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -144,17 +141,17 @@ public class Server extends Application implements Runnable {
         startButton.setPrefSize(150, 40);
         startButton.setStyle(
                 "-fx-background-color: linear-gradient(to bottom, #4CAF50, #388E3C); -fx-text-fill: white; " +
-                        "-fx-font-size: 16px; -fx-background-radius: 20px; -fx-border-radius: 20px; " +
+                        "-fx-font-size: 16px; -fx-background-radius: 7px; -fx-border-radius: 7px; " +
                         "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.5), 5, 0.5, 0, 1);"
         );
         startButton.setOnMouseEntered(e -> startButton.setStyle(
                 "-fx-background-color: linear-gradient(to bottom, #45A049, #2E7D32); -fx-text-fill: white; " +
-                        "-fx-font-size: 16px; -fx-background-radius: 20px; -fx-border-radius: 20px; " +
+                        "-fx-font-size: 16px; -fx-background-radius: 7px; -fx-border-radius: 7px; " +
                         "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.75), 8, 0.7, 0, 2);"
         ));
         startButton.setOnMouseExited(e -> startButton.setStyle(
                 "-fx-background-color: linear-gradient(to bottom, #4CAF50, #388E3C); -fx-text-fill: white; " +
-                        "-fx-font-size: 16px; -fx-background-radius: 20px; -fx-border-radius: 20px; " +
+                        "-fx-font-size: 16px; -fx-background-radius: 7px; -fx-border-radius: 7px; " +
                         "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.5), 5, 0.5, 0, 1);"
         ));
         startButton.setOnAction(event -> {
@@ -384,8 +381,36 @@ public class Server extends Application implements Runnable {
 
         compressionBox.setAlignment(Pos.BASELINE_LEFT);
 
+        imgClient.setSaveButton( new Button("Save Image"));
+        imgClient.getSaveButton().setPrefSize(150, 40);
+        imgClient.getSaveButton().setStyle(
+                "-fx-background-color: #80EE98 ; -fx-text-fill: #2C2C2C; " +
+                        "-fx-font-size: 16px; -fx-background-radius: 5px; -fx-border-radius: 5px; " +
+                        "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.5), 5, 0.5, 0, 1);"
+        );
+        imgClient.getSaveButton().setOnMouseEntered(e -> imgClient.getSaveButton().setStyle(
+                "-fx-background-color: #46DFB1; -fx-text-fill: #2C2C2C; " +
+                        "-fx-font-size: 16px; -fx-background-radius: 5px; -fx-border-radius: 5px; " +
+                        "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.75), 8, 0.7, 0, 2);"
+        ));
+        imgClient.getSaveButton().setOnMouseExited(e -> imgClient.getSaveButton().setStyle(
+                "-fx-background-color: #80EE98; -fx-text-fill:#2C2C2C; " +
+                        "-fx-font-size: 16px; -fx-background-radius: 5px; -fx-border-radius: 5px; " +
+                        "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.5), 5, 0.5, 0, 1);"
+        ));
+        imgClient.getSaveButton().setOnAction(e -> {
+            if(imgClient.isSaved()){
+                imgClient.setSaved(false);
+                imgClient.getSaveButton().setText("Save Image");
+            }
+            else{
+                imgClient.setSaved(true);
+                imgClient.getSaveButton().setText("Saving ...");
+            }
+        });
 
-        propertyBox.getChildren().addAll(imgClient.getTitle(),sizeBox, freqBox,compressionBox);
+
+        propertyBox.getChildren().addAll(imgClient.getTitle(),sizeBox, freqBox,compressionBox,imgClient.getSaveButton());
         imgClient.setImageView(new ImageView(imgClient.getImage()));
         imgClient.getImageView().setStyle("-fx-border-color: #09D1C7; -fx-border-width: 2px; -fx-border-radius: 15px; -fx-background-radius: 15px;");
         VBox imageBox = new VBox(10, imgClient.getImageView());
@@ -407,6 +432,7 @@ public class Server extends Application implements Runnable {
             e.printStackTrace();
         }
     }
+
     public void insertOrUpdateClient(ImgClient imgClient) {
         synchronized (this) {
             if(!imgClientList.contains(imgClient)){
@@ -477,16 +503,40 @@ public class Server extends Application implements Runnable {
     }
 }
 class ImgClient implements Runnable{
+    private static String path = "D:\\TERM5\\PBL4\\serverimg\\";
     private Socket imgSocket;
     private Socket paramSocket;
+    private String clientIP;
+    private Button saveButton;
+
+    public boolean isSaved() {
+        return isSaved;
+    }
+
+    public void setSaved(boolean saved) {
+        isSaved = saved;
+    }
+
+    private boolean isSaved  ;
+
+    public Button getSaveButton() {
+        return saveButton;
+    }
+
+    public void setSaveButton(Button saveButton) {
+        this.saveButton = saveButton;
+    }
+
     public ImgClient(Socket imgSocket, Socket paramSocket) {
         this.imgSocket = imgSocket;
         this.paramSocket = paramSocket;
+        this.isSaved = false;
+        clientIP = imgSocket.getInetAddress().getHostAddress();
         Date date = new Date(System.currentTimeMillis());
         String timeConnect = "     Connected at: \n       " + date.getDate() + "/" + (date.getMonth() + 1)
                 + "/" + (date.getYear() + 1900) + "\n          " + date.getHours() + ":"
                 + date.getMinutes() + ":" + date.getSeconds();
-        title = new Label("   Client IP: " + imgSocket.getLocalAddress() +"\n"+
+        title = new Label("   Client IP: " + clientIP +"\n"+
                  timeConnect);
     }
     private ImageView imageView;
@@ -590,6 +640,11 @@ class ImgClient implements Runnable{
     public void run() {
         new Thread(() -> {
             try {
+                File clientDir = new File(path + clientIP );
+                if(!clientDir.exists()){
+                    clientDir.mkdir();
+                }
+                int count = 1 ;
                 DataInputStream dis = new DataInputStream(imgSocket.getInputStream());
                 while(true){
                     int len = dis.readInt();
@@ -597,6 +652,14 @@ class ImgClient implements Runnable{
                     byte[] data = new byte[len];
                     dis.readFully(data);
                     image = new Image(new ByteArrayInputStream(data));
+                    if(isSaved){
+                        String imagePath = path + clientIP + "\\image" + count++ + ".jpg";
+                        try(FileOutputStream fos = new FileOutputStream(imagePath)){
+                            fos.write(data);
+                        }
+                    }
+
+
                     Platform.runLater(() -> {
 
                         Server.getInstance().insertOrUpdateClient(this);
