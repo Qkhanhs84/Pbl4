@@ -95,7 +95,7 @@ public class Server extends Application implements Runnable {
                 "          MẠNG MÁY TÍNH");
         titlePbl4.setStyle(
                 "-fx-padding: 20px ;" +
-                "-fx-font-size: 26px; -fx-font-weight: bold; -fx-text-fill: #FFFFFF; " +
+                        "-fx-font-size: 26px; -fx-font-weight: bold; -fx-text-fill: #FFFFFF; " +
                         "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.75), 5, 0.5, 0, 1);"
         );
         Label titleLabel = new Label("Xây dựng hệ thống thu nhận hình ảnh từ webcam qua Internet");
@@ -252,7 +252,7 @@ public class Server extends Application implements Runnable {
         imageBox.setAlignment(Pos.TOP_CENTER);
         imageBox.setStyle(
                 "-fx-background-color: #0C6478; " +
-                "-fx-padding: 20px; "
+                        "-fx-padding: 20px; "
 
 
 
@@ -479,7 +479,7 @@ public class Server extends Application implements Runnable {
         mainBox.setAlignment(Pos.CENTER);
         mainBox.setStyle("-fx-padding: 20px; -fx-background-color: #213A58;" +
                 "-fx-border-color: #06D7A0; " + "-fx-border-width: 2px; " + "-fx-border-radius: 15px;"
-        + "-fx-background-radius: 15px;");
+                + "-fx-background-radius: 15px;");
         return mainBox;
     }
     private void sendToClient( ImgClient imgClient,String type, String value) {
@@ -783,4 +783,3 @@ class ImgClient implements Runnable{
     }
 
 }
-
