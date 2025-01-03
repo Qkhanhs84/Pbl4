@@ -25,6 +25,7 @@ import org.opencv.core.*;
 import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.imgproc.Imgproc;
 import org.opencv.videoio.VideoCapture;
+
 import java.io.*;
 import java.net.InetSocketAddress;
 import java.net.Socket;
@@ -43,23 +44,24 @@ public class Client2 extends Application implements Runnable {
     private Button switchButton;
     private TextField txtWidth, txtHeight, txtFreq;
     private Label errorLabel;
-    private Button btnStart ;
-    private Button btnStop ;
+    private Button btnStart;
+    private Button btnStop;
     private Button connectButton;
     private Button btnBack;
     private Stage primaryStage;
     private Scene startScene, clientScene;
     private TextField ipTextField;
-    private TextField imgPortTextField ;
-    private TextField paramPortTextField ;
-    
-    private static  int imgPort = 5000;
-    private static  int paramPort = 5001;
-    private static  String SERVER_IP = "localhost";
+    private TextField imgPortTextField;
+    private TextField paramPortTextField;
+
+    private static int imgPort = 5000;
+    private static int paramPort = 5001;
+    private static String SERVER_IP = "localhost";
 
     public static void main(String[] args) {
         launch(args);
     }
+
     @Override
     public void start(Stage primaryStage) {
         System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
@@ -75,10 +77,14 @@ public class Client2 extends Application implements Runnable {
         primaryStage.show();
 
     }
-    private Scene createStartScene() {
 
-        Label titleLabel = new Label("Welcome to Client Side");
-        titleLabel.setStyle("-fx-font-size: 26px; -fx-font-weight: bold; -fx-text-fill: white;");
+    private Scene createStartScene() {
+        Label lblWelcome = new Label("Welcome to");
+        lblWelcome.setStyle("-fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: white;" +
+                "-fx-padding: 3px");
+        Label titleLabel = new Label(
+                "The system receives images from Webcam via the Internet");
+        titleLabel.setStyle("-fx-font-size: 28px; -fx-font-weight: bold; -fx-text-fill: white;");
 
 
         ipTextField = new TextField();
@@ -147,7 +153,7 @@ public class Client2 extends Application implements Runnable {
         connectButton.setOnAction(e -> handleConnectButton());
 
 
-        VBox startLayout = new VBox(20, titleLabel, ipPortBox, connectButton);
+        VBox startLayout = new VBox(20, lblWelcome, titleLabel, ipPortBox, connectButton);
         startLayout.setAlignment(Pos.CENTER);
         startLayout.setStyle(
                 "-fx-background-color: linear-gradient(to bottom, #2980b9, #6dd5fa, #ffffff); " +
@@ -162,12 +168,14 @@ public class Client2 extends Application implements Runnable {
         applyFadeTransition(startLayout, 1000);
         return startScene;
     }
+
     private void applyFadeTransition(Pane layout, int durationMillis) {
         FadeTransition fadeTransition = new FadeTransition(Duration.millis(durationMillis), layout);
         fadeTransition.setFromValue(0);
         fadeTransition.setToValue(1);
         fadeTransition.play();
     }
+
     private void handleConnectButton() {
         String ip = ipTextField.getText();
         String portText = imgPortTextField.getText();
@@ -182,10 +190,8 @@ public class Client2 extends Application implements Runnable {
             imgPort = Integer.parseInt(portText);
             paramPort = Integer.parseInt(paramPortText);
 
-            if(!connectToServer())
-            {
+            if (!connectToServer()) {
                 flashInvalidField(ipTextField, "Can't connect to server");
-
                 return;
             }
 
@@ -205,6 +211,7 @@ public class Client2 extends Application implements Runnable {
             }
         }
     }
+
     private boolean connectToServer() {
         try {
 
@@ -218,6 +225,7 @@ public class Client2 extends Application implements Runnable {
             return false;
         }
     }
+
     private void flashInvalidField(TextField textField, String message) {
         String originalStyle = "-fx-font-size: 14px; " +
                 "-fx-padding: 8px; " +
@@ -227,8 +235,8 @@ public class Client2 extends Application implements Runnable {
 
         Timeline timeline = new Timeline(
 
-                new KeyFrame(Duration.millis(100), e -> textField.setStyle(originalStyle+"-fx-background-color: #ffcccc;")),
-                new KeyFrame(Duration.millis(200), e -> textField.setStyle(originalStyle+"-fx-background-color: white;"))
+                new KeyFrame(Duration.millis(100), e -> textField.setStyle(originalStyle + "-fx-background-color: #ffcccc;")),
+                new KeyFrame(Duration.millis(200), e -> textField.setStyle(originalStyle + "-fx-background-color: white;"))
         );
 
         timeline.setCycleCount(4);
@@ -240,7 +248,7 @@ public class Client2 extends Application implements Runnable {
     }
 
     private boolean isValidIP(String ip) {
-        if(ip.equals("localhost")) return true;
+        if (ip.equals("localhost")) return true;
         String ipPattern =
                 "^((25[0-5]|2[0-4][0-9]|[0-1]?[0-9][0-9]?)\\.){3}(25[0-5]|2[0-4][0-9]|[0-1]?[0-9][0-9]?)$";
         return ip.matches(ipPattern);
@@ -254,7 +262,6 @@ public class Client2 extends Application implements Runnable {
             return false;
         }
     }
-
 
 
     private Scene createClientScene() {
@@ -285,20 +292,20 @@ public class Client2 extends Application implements Runnable {
             if (switchButton.getText().equals("Start")) {
                 isRunning = true;
                 try {
-                    if(imgSocket.isClosed()) {
+                    if (imgSocket.isClosed()) {
                         imgSocket = new Socket();
                         imgSocket.connect(new InetSocketAddress(SERVER_IP, imgPort), 2000);
                     }
-                    if(paramSocket.isClosed()) {
+                    if (paramSocket.isClosed()) {
                         paramSocket = new Socket();
                         paramSocket.connect(new InetSocketAddress(SERVER_IP, paramPort), 2000);
                     }
 
-                }
-                catch (Exception ex) {
+                } catch (Exception ex) {
                     showErrorMessage("Can't connect to server!!!");
                     return;
                 }
+
                 Thread thread = new Thread(this);
                 thread.start();
                 new Thread(() -> {
@@ -306,7 +313,7 @@ public class Client2 extends Application implements Runnable {
 
 
                         DataInputStream dis = new DataInputStream(paramSocket.getInputStream());
-                        while(true) {
+                        while (true) {
                             if (dis.available() > 0) {
                                 String type = dis.readUTF();
                                 String value = dis.readUTF();
@@ -352,46 +359,19 @@ public class Client2 extends Application implements Runnable {
 
 
         txtWidth = createTextField("Width");
-        txtWidth.setText( (int)imgSize.width+ "");
+        txtWidth.setText((int) imgSize.width + "");
         txtHeight = createTextField("Height");
-        txtHeight.setText((int)imgSize.height + "");
+        txtHeight.setText((int) imgSize.height + "");
         txtFreq = createTextField("Frequency");
         txtFreq.setText(captureTime + "");
         txtWidth.setOnAction(e -> {
-            String value = txtWidth.getText();
-            try{
-                int valueInt = Integer.parseInt(value);
-                imgSize.width = valueInt;
-                sendToServer("width", value);
-            }
-            catch(NumberFormatException er) {
-                txtWidth.setText("Invalid");
-                return;
-            }
+            updateWidth();
         });
         txtHeight.setOnAction(e -> {
-            String value = txtHeight.getText();
-            try{
-                int valueInt = Integer.parseInt(value);
-                imgSize.height = valueInt;
-                sendToServer("height", value);
-            }
-            catch(NumberFormatException er) {
-                txtHeight.setText("Invalid");
-                return;
-            }
+            updateHeight();
         });
         txtFreq.setOnAction(e -> {
-            String value = txtFreq.getText();
-            try{
-                int valueInt = Integer.parseInt(value);
-                captureTime = valueInt;
-                sendToServer("frequency", value);
-            }
-            catch(NumberFormatException er) {
-                txtFreq.setText("Invalid");
-                return;
-            }
+            updateFreq();
         });
         HBox sizeBox = new HBox(10, txtWidth, new Label("x"), txtHeight);
         sizeBox.setAlignment(Pos.CENTER);
@@ -436,7 +416,7 @@ public class Client2 extends Application implements Runnable {
         backToStart.getChildren().addAll(btnBack);
 
 
-        VBox propertiesBox = new VBox(20, errorLabel,switchButton, sizeBox, freqBox, compressBox, backToStart);
+        VBox propertiesBox = new VBox(20, errorLabel, switchButton, sizeBox, freqBox, compressBox, backToStart);
         propertiesBox.setAlignment(Pos.CENTER);
         propertiesBox.setMaxWidth(280);
         propertiesBox.setMinHeight(480);
@@ -445,7 +425,7 @@ public class Client2 extends Application implements Runnable {
                 + "-fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.2), 10, 0, 0, 0); "
                 + "-fx-padding: 20px;");
 
-        VBox cameraBox = new VBox( imageContainer);
+        VBox cameraBox = new VBox(imageContainer);
         cameraBox.setAlignment(Pos.CENTER);
 
 
@@ -456,6 +436,49 @@ public class Client2 extends Application implements Runnable {
 
         Scene scene = new Scene(mainBox, 980, 520);
         return scene;
+    }
+
+    private void updateWidth() {
+        String value = txtWidth.getText();
+        try {
+            int valueInt = Integer.parseInt(value);
+            imgSize.width = valueInt;
+            sendToServer("width", value);
+        } catch (NumberFormatException er) {
+            txtWidth.setText("Invalid");
+            return;
+        }
+    }
+
+    private void updateHeight() {
+        String value = txtHeight.getText();
+        try {
+            int valueInt = Integer.parseInt(value);
+            imgSize.height = valueInt;
+            sendToServer("height", value);
+        } catch (NumberFormatException er) {
+            txtHeight.setText("Invalid");
+            return;
+        }
+    }
+
+    private void updateFreq() {
+        String value = txtFreq.getText();
+        try {
+            int valueInt = Integer.parseInt(value);
+            captureTime = valueInt;
+            sendToServer("frequency", value);
+        } catch (NumberFormatException er) {
+            txtFreq.setText("Invalid");
+            return;
+        }
+    }
+
+    private void updateCompression() {
+
+        imgCompression = (int) compressSlider.getValue();
+        sendToServer("compression", String.valueOf(imgCompression));
+
     }
 
 
@@ -475,6 +498,7 @@ public class Client2 extends Application implements Runnable {
 
         return button;
     }
+
     private void updateButtonStyle(Button button, boolean isRunning) {
         String backgroundColor;
         String borderColor;
@@ -491,9 +515,6 @@ public class Client2 extends Application implements Runnable {
             hoverColor = "#2980b9";
             button.setText("Start");
         }
-
-
-
 
 
         button.setOnMouseEntered(e -> {
@@ -517,15 +538,12 @@ public class Client2 extends Application implements Runnable {
     }
 
 
-
-
-
     private TextField createTextField(String promptText) {
         TextField textField = new TextField();
         textField.setPromptText(promptText);
         textField.setStyle("-fx-background-color: #f0f0f0; -fx-text-fill: #333333; "
                 + "-fx-border-radius: 5px; -fx-border-color: #ccc; -fx-padding: 5px 10px;"
-        + "-fx-background-radius: 5px;");
+                + "-fx-background-radius: 5px;");
         return textField;
     }
 
@@ -566,11 +584,14 @@ public class Client2 extends Application implements Runnable {
     @Override
     public void run() {
         long startTime = System.currentTimeMillis();
-        try
-        {
+        updateWidth();
+        updateHeight();
+        updateFreq();
+        updateCompression();
+        try {
 
-            OutputStream outputStream = imgSocket.getOutputStream();
-            DataOutputStream dataOutputStream = new DataOutputStream(outputStream);
+
+            DataOutputStream dataOutputStream = new DataOutputStream(imgSocket.getOutputStream());
             DataInputStream dataInputStream = new DataInputStream(imgSocket.getInputStream());
 
             System.out.println("Đã kết nối đến server.");
@@ -588,30 +609,7 @@ public class Client2 extends Application implements Runnable {
                     reset();
                     break;
                 }
-                if (dataInputStream.available() > 0) {
-                    String message = dataInputStream.readUTF();
-                    if (message.equals("frequency")) {
-                        captureTime = Integer.parseInt(dataInputStream.readUTF());
-                        txtFreq.setText(String.valueOf(captureTime));
 
-                    } else if (message.equals("imageSize")) {
-                        String imageSize = dataInputStream.readUTF();
-                        String[] size = imageSize.split("x");
-                        int width = Integer.parseInt(size[0]);
-                        int height = Integer.parseInt(size[1]);
-                        imgSize = new Size(width, height);
-                        txtWidth.setText(String.valueOf(width));
-                        txtHeight.setText(String.valueOf(height));
-
-
-
-                    } else if (message.equals("compression")) {
-                        imgCompression = Integer.parseInt(dataInputStream.readUTF());
-                        Platform.runLater(() -> {
-                            compressSlider.setValue(imgCompression);
-                        });
-                    }
-                }
 
                 webcam.read(frame);
                 Core.flip(frame, flipFrame, 1);
@@ -641,15 +639,15 @@ public class Client2 extends Application implements Runnable {
                 }
 
             }
-        }
-        catch (Exception e) {
-            reset();
 
+        } catch (Exception e) {
+            reset();
 
 
         }
     }
-    private void reset(){
+
+    private void reset() {
         isRunning = false;
 
 
@@ -659,6 +657,7 @@ public class Client2 extends Application implements Runnable {
             showErrorMessage("Can't connect to server!!!");
         });
     }
+
     private WritableImage matToWritableImage(Mat mat) {
 
         if (mat.type() != CvType.CV_8UC3) {

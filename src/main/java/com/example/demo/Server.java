@@ -75,12 +75,14 @@ public class Server extends Application implements Runnable {
     private Scene createStartScene() {
         VBox startLayout = new VBox(20);
         startLayout.setAlignment(Pos.TOP_CENTER);
-        startLayout.setStyle("-fx-background-color: linear-gradient(to bottom, #141E30, #243B55, #1D4E89); -fx-padding: 30px;");
-        Image universityImage = new Image("D:\\TERM5\\PBL4\\logo.png");  // Cập nhật đường dẫn tới ảnh của bạn
+        startLayout.setStyle("-fx-background-color: linear-gradient(to bottom, #15919B, #0C6478, #213A58); -fx-padding: 30px;");
+        Image universityImage = new Image("file:src/main/resources/logo.png");
         ImageView universityImageView = new ImageView(universityImage);
         universityImageView.setFitWidth(500);
         universityImageView.setFitHeight(250);
         universityImageView.setPreserveRatio(true);
+        Label universityLabel = new Label("TRƯỜNG ĐẠI HỌC BÁCH KHOA");
+        Label falcutyLabel = new Label("KHOA CÔNG NGHỆ THÔNG TIN");
 
 
 
@@ -209,7 +211,7 @@ public class Server extends Application implements Runnable {
 
         VBox serverLayout = new VBox(20);
         serverLayout.setAlignment(Pos.CENTER);
-        serverLayout.setStyle("-fx-background-color: linear-gradient(to bottom, #141E30, #243B55,#1D4E89);");
+        serverLayout.setStyle("-fx-background-color: linear-gradient(to bottom,  #15919B, #0C6478, #213A58);");
 
         VBox headerBox = new VBox(10);
         headerBox.setAlignment(Pos.CENTER);
@@ -231,7 +233,7 @@ public class Server extends Application implements Runnable {
         imageBox = new VBox(10);
         imageBox.setAlignment(Pos.TOP_CENTER);
         imageBox.setStyle(
-                "-fx-background-color: #073A4B; " +
+                "-fx-background-color: #0C6478; " +
                 "-fx-padding: 20px; "
 
 
@@ -284,7 +286,7 @@ public class Server extends Application implements Runnable {
 
         return new Scene(serverLayout, 1200, 800);
     }
-    private HBox createClientScene(ImgClient imgClient) {
+    public HBox createClientScene(ImgClient imgClient) {
         VBox propertyBox = new VBox(15);
         propertyBox.setAlignment(Pos.TOP_CENTER);
         propertyBox.setMaxWidth(280);
@@ -429,7 +431,7 @@ public class Server extends Application implements Runnable {
             dos.writeUTF(type);
             dos.writeUTF(value);
         } catch (Exception e) {
-            e.printStackTrace();
+
         }
     }
 
@@ -437,19 +439,13 @@ public class Server extends Application implements Runnable {
         synchronized (this) {
             if(!imgClientList.contains(imgClient)){
                 imgClientList.add(imgClient);
-                HBox clientBox = createClientScene(imgClient);
-                imgClient.setMainBox(clientBox);
-                imageBox.getChildren().add(clientBox);
+
+                imageBox.getChildren().add(imgClient.getMainBox());
             }
             else{
                 imgClient.getImageView().setImage(imgClient.getImage());
             }
-
-
-
         }
-
-
     }
     public void removeClient(ImgClient imgClient) {
         synchronized (this) {
@@ -538,6 +534,7 @@ class ImgClient implements Runnable{
                 + date.getMinutes() + ":" + date.getSeconds();
         title = new Label("   Client IP: " + clientIP +"\n"+
                  timeConnect);
+        this.mainBox = Server.getInstance().createClientScene(this);
     }
     private ImageView imageView;
     private Image image;
@@ -638,61 +635,69 @@ class ImgClient implements Runnable{
 
     @Override
     public void run() {
-        new Thread(() -> {
-            try {
-                File clientDir = new File(path + clientIP );
-                if(!clientDir.exists()){
-                    clientDir.mkdir();
-                }
-                int count = 1 ;
-                DataInputStream dis = new DataInputStream(imgSocket.getInputStream());
-                while(true){
-                    int len = dis.readInt();
-                    System.out.println(len);
-                    byte[] data = new byte[len];
-                    dis.readFully(data);
-                    image = new Image(new ByteArrayInputStream(data));
-                    if(isSaved){
-                        String imagePath = path + clientIP + "\\image" + count++ + ".jpg";
-                        try(FileOutputStream fos = new FileOutputStream(imagePath)){
-                            fos.write(data);
-                        }
+        try {
+            new Thread(() -> {
+                try {
+                    File clientDir = new File(path + clientIP);
+                    if (!clientDir.exists()) {
+                        clientDir.mkdir();
                     }
+                    int count = 1;
+                    DataInputStream dis = new DataInputStream(imgSocket.getInputStream());
+                    while (true) {
+                        int len = dis.readInt();
+                        System.out.println(len);
+                        byte[] data = new byte[len];
+                        dis.readFully(data);
+                        image = new Image(new ByteArrayInputStream(data));
+                        if (isSaved) {
+                            String imagePath = path + clientIP + "\\image" + count++ + ".jpg";
+                            try (FileOutputStream fos = new FileOutputStream(imagePath)) {
+                                fos.write(data);
+                            }
+                        }
 
 
+                        Platform.runLater(() -> {
+
+                            Server.getInstance().insertOrUpdateClient(this);
+                        });
+
+
+                    }
+                } catch (Exception e) {
                     Platform.runLater(() -> {
-
-                        Server.getInstance().insertOrUpdateClient(this);
+                        Server.getInstance().removeClient(this);
                     });
 
-
-
                 }
-            } catch (Exception e) {
-                Platform.runLater(() -> {
-                    Server.getInstance().removeClient(this);
-                });
+            }).start();
 
-            }
-        }).start();
-        new Thread(() -> {
-            try {
-                DataInputStream dis = new DataInputStream(paramSocket.getInputStream());
-                while(true){
-                    if (dis.available() > 0) {
-                        String type = dis.readUTF();
-                        String value = dis.readUTF();
-                        Platform.runLater(() -> {
-                            Server.getInstance().setParam(this, type, value);
-                        });
+            new Thread(() -> {
+                try {
+                    DataInputStream dis = new DataInputStream(paramSocket.getInputStream());
+                    while (true) {
+                        if (dis.available() > 0) {
+                            String type = dis.readUTF();
+                            String value = dis.readUTF();
+                            Platform.runLater(() -> {
+                                Server.getInstance().setParam(this, type, value);
+                            });
+                        }
                     }
+                } catch (Exception e) {
+                    Platform.runLater(() -> {
+                        Server.getInstance().removeClient(this);
+                    });
                 }
-            } catch (Exception e) {
-                Platform.runLater(() -> {
-                    Server.getInstance().removeClient(this);
-                });
-            }
-        }).start();
+            }).start();
+        }
+        catch (Exception e) {
+            Platform.runLater(() -> {
+                Server.getInstance().removeClient(this);
+            });
+        }
     }
+
 }
 
