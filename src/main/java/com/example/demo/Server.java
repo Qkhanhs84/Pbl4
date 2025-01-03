@@ -5,12 +5,17 @@ import javafx.application.Platform;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
+import javafx.scene.control.ScrollPane;
+import javafx.scene.control.TextField;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 
+import java.awt.*;
 import java.io.*;
 import java.net.InetAddress;
 import java.net.ServerSocket;
@@ -81,8 +86,7 @@ public class Server extends Application implements Runnable {
         universityImageView.setFitWidth(500);
         universityImageView.setFitHeight(250);
         universityImageView.setPreserveRatio(true);
-        Label universityLabel = new Label("TRƯỜNG ĐẠI HỌC BÁCH KHOA");
-        Label falcutyLabel = new Label("KHOA CÔNG NGHỆ THÔNG TIN");
+
 
 
 
@@ -221,10 +225,24 @@ public class Server extends Application implements Runnable {
 
 
         Label serverInfoLabel = new Label("Server IP: " + serverIP);
-        serverInfoLabel.setStyle("-fx-font-size: 19px; -fx-font-weight: bold; -fx-text-fill: #FFFFFF;");
+        serverInfoLabel.setStyle(
+                "-fx-font-size: 24px; " + // Tăng kích thước font
+                        "-fx-font-weight: bold; " + // Chữ đậm
+                        "-fx-text-fill: #82d22c; " + // Màu chữ xanh dương nổi bật
+                        "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.25), 5, 0.5, 0, 1); " + // Hiệu ứng bóng để nổi bật
+                        "-fx-padding: 0px 0px 10px 0px;" // Khoảng cách phía dưới để tách biệt
+        );
 
         Label serverPortLabel = new Label("Image Port: " + imagePort + "    |   Parameter Port: " + parameterPort);
-        serverPortLabel.setStyle("-fx-font-size: 17px; -fx-text-fill: #FFFFFF;");
+        serverPortLabel.setStyle(
+                "-fx-font-size: 18px; " + // Font nhỏ hơn serverInfoLabel để nhấn mạnh cấp bậc
+                        "-fx-font-style: italic; " + // Font nghiêng để tạo sự khác biệt
+                        "-fx-text-fill: #89c267; " + // Màu xám nhẹ để không quá nổi bật
+                        "-fx-padding: 5px 0px;" // Khoảng cách trên dưới
+        );
+
+
+
 
 
 
@@ -364,8 +382,19 @@ public class Server extends Application implements Runnable {
 
 
 
-        imgClient.getTitle().setStyle("-fx-font-size: 16px; -fx-text-fill: #F4E7FB;"+
-                "-fx-padding: 0px 0px 50px 0px;");
+        imgClient.getTitle().setStyle(
+                "-fx-font-size: 22px; " + // Kích thước lớn hơn
+                        "-fx-font-weight: bold; " + // Chữ đậm
+                        "-fx-text-fill: linear-gradient(to bottom, #82b298, #15ad5c); " + // Gradient xanh nhạt
+                        "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.5), 8, 0.3, 0, 2); ");
+
+
+        imgClient.getLbTimeConnect().setStyle(
+                "-fx-font-size: 14px; " + // Kích thước nhỏ hơn
+                        "-fx-text-fill: #B8B8B8; " + // Màu xám nhạt
+                        "-fx-font-style: italic; " + // Chữ nghiêng
+                        "-fx-padding: 0px 0px 50px 0px;" // Giữ khoảng cách phù hợp
+        );
 
         Label labelX = new Label("x");
         labelX.setStyle("-fx-font-size: 16px; -fx-text-fill: #F4E7FB;");
@@ -410,9 +439,38 @@ public class Server extends Application implements Runnable {
                 imgClient.getSaveButton().setText("Saving ...");
             }
         });
+        imgClient.setOpenFolderButton(new Button("Open Folder"));
+        imgClient.getOpenFolderButton().setPrefSize(150, 40);
+        imgClient.getOpenFolderButton().setStyle(
+                "-fx-background-color: #E6F7D8; -fx-text-fill: #2C2C2C; " +
+                        "-fx-font-size: 16px; -fx-background-radius: 5px; -fx-border-radius: 5px; " +
+                        "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.5), 5, 0.5, 0, 1);"
+        );
+        imgClient.getOpenFolderButton().setOnMouseEntered(e -> imgClient.getOpenFolderButton().setStyle(
+                "-fx-background-color: #C8E6A3; -fx-text-fill: #2C2C2C; " +
+                        "-fx-font-size: 16px; -fx-background-radius: 5px; -fx-border-radius: 5px; " +
+                        "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.75), 8, 0.7, 0, 2);"
+        ));
+        imgClient.getOpenFolderButton().setOnMouseExited(e -> imgClient.getOpenFolderButton().setStyle(
+                "-fx-background-color: #E6F7D8; -fx-text-fill: #2C2C2C; " +
+                        "-fx-font-size: 16px; -fx-background-radius: 5px; -fx-border-radius: 5px; " +
+                        "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.5), 5, 0.5, 0, 1);"
+        ));
+
+        imgClient.getOpenFolderButton().setOnAction(e -> {
+
+            try {
+                String folderPath = imgClient.getPathImage();
+                Desktop.getDesktop().open(new java.io.File(folderPath));
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+        });
+        VBox buttonBox = new VBox(10, imgClient.getSaveButton(), imgClient.getOpenFolderButton());
 
 
-        propertyBox.getChildren().addAll(imgClient.getTitle(),sizeBox, freqBox,compressionBox,imgClient.getSaveButton());
+
+        propertyBox.getChildren().addAll(imgClient.getTitle(),imgClient.getLbTimeConnect(),sizeBox, freqBox,compressionBox, imgClient.getSaveButton(), imgClient.getOpenFolderButton());
         imgClient.setImageView(new ImageView(imgClient.getImage()));
         imgClient.getImageView().setStyle("-fx-border-color: #09D1C7; -fx-border-width: 2px; -fx-border-radius: 15px; -fx-background-radius: 15px;");
         VBox imageBox = new VBox(10, imgClient.getImageView());
@@ -504,6 +562,8 @@ class ImgClient implements Runnable{
     private Socket paramSocket;
     private String clientIP;
     private Button saveButton;
+    private String pathImage;
+    private Label timeConnectLb;
 
     public boolean isSaved() {
         return isSaved;
@@ -529,12 +589,13 @@ class ImgClient implements Runnable{
         this.isSaved = false;
         clientIP = imgSocket.getInetAddress().getHostAddress();
         Date date = new Date(System.currentTimeMillis());
-        String timeConnect = "     Connected at: \n       " + date.getDate() + "/" + (date.getMonth() + 1)
-                + "/" + (date.getYear() + 1900) + "\n          " + date.getHours() + ":"
+        String timeConnect = "Connected at: " + date.getDate() + "/" + (date.getMonth() + 1)
+                + "/" + (date.getYear() + 1900) + " " + date.getHours() + ":"
                 + date.getMinutes() + ":" + date.getSeconds();
-        title = new Label("   Client IP: " + clientIP +"\n"+
-                 timeConnect);
+        title = new Label("   Client IP: " + clientIP );
+        timeConnectLb = new Label(timeConnect);
         this.mainBox = Server.getInstance().createClientScene(this);
+        this.pathImage = path + clientIP;
     }
     private ImageView imageView;
     private Image image;
@@ -560,6 +621,8 @@ class ImgClient implements Runnable{
     private TextField txtHeight;
     private TextField txtFrequency;
     private TextField txtCompression;
+    private Label title;
+    private Button openFolderButton;
 
     public TextField getTxtCompression() {
         return txtCompression;
@@ -569,9 +632,29 @@ class ImgClient implements Runnable{
         this.txtCompression = txtCompression;
     }
 
-    private Label title;
+    public Label getLbTimeConnect() {
+        return timeConnectLb;
+    }
 
+    public void setLbTimeConnect(Label timeConnectLb) {
+        this.timeConnectLb = timeConnectLb;
+    }
 
+    public String getPathImage() {
+        return pathImage;
+    }
+
+    public void setPathImage(String pathImage) {
+        this.pathImage = pathImage;
+    }
+
+    public Button getOpenFolderButton() {
+        return openFolderButton;
+    }
+
+    public void setOpenFolderButton(Button openFolderButton) {
+        this.openFolderButton = openFolderButton;
+    }
 
     public Socket getImgSocket() {
         return imgSocket;
@@ -638,7 +721,7 @@ class ImgClient implements Runnable{
         try {
             new Thread(() -> {
                 try {
-                    File clientDir = new File(path + clientIP);
+                    File clientDir = new File(pathImage);
                     if (!clientDir.exists()) {
                         clientDir.mkdir();
                     }
@@ -651,7 +734,7 @@ class ImgClient implements Runnable{
                         dis.readFully(data);
                         image = new Image(new ByteArrayInputStream(data));
                         if (isSaved) {
-                            String imagePath = path + clientIP + "\\image" + count++ + ".jpg";
+                            String imagePath = pathImage+ "\\image" + count++ + ".jpg";
                             try (FileOutputStream fos = new FileOutputStream(imagePath)) {
                                 fos.write(data);
                             }

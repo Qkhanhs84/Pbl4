@@ -11,6 +11,7 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.Slider;
 import javafx.scene.control.TextField;
+import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.image.PixelWriter;
 import javafx.scene.image.WritableImage;
@@ -79,9 +80,14 @@ public class Client2 extends Application implements Runnable {
     }
 
     private Scene createStartScene() {
+        Image universityImage = new Image("file:src/main/resources/logo.png");
+        ImageView universityImageView = new ImageView(universityImage);
+        universityImageView.setFitWidth(400);
+        universityImageView.setFitHeight(200);
+        universityImageView.setPreserveRatio(true);
         Label lblWelcome = new Label("Welcome to");
         lblWelcome.setStyle("-fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: white;" +
-                "-fx-padding: 3px");
+                "-fx-padding: 50px 0px 0px 0px");
         Label titleLabel = new Label(
                 "The system receives images from Webcam via the Internet");
         titleLabel.setStyle("-fx-font-size: 28px; -fx-font-weight: bold; -fx-text-fill: white;");
@@ -153,8 +159,8 @@ public class Client2 extends Application implements Runnable {
         connectButton.setOnAction(e -> handleConnectButton());
 
 
-        VBox startLayout = new VBox(20, lblWelcome, titleLabel, ipPortBox, connectButton);
-        startLayout.setAlignment(Pos.CENTER);
+        VBox startLayout = new VBox(20,universityImageView, lblWelcome, titleLabel, ipPortBox, connectButton);
+        startLayout.setAlignment(Pos.TOP_CENTER);
         startLayout.setStyle(
                 "-fx-background-color: linear-gradient(to bottom, #2980b9, #6dd5fa, #ffffff); " +
                         "-fx-padding: 50px;"
@@ -292,11 +298,11 @@ public class Client2 extends Application implements Runnable {
             if (switchButton.getText().equals("Start")) {
                 isRunning = true;
                 try {
-                    if (imgSocket.isClosed()) {
+                    if (imgSocket.isClosed() || !imgSocket.isConnected()) {
                         imgSocket = new Socket();
                         imgSocket.connect(new InetSocketAddress(SERVER_IP, imgPort), 2000);
                     }
-                    if (paramSocket.isClosed()) {
+                    if (paramSocket.isClosed()  || !paramSocket.isConnected()) {
                         paramSocket = new Socket();
                         paramSocket.connect(new InetSocketAddress(SERVER_IP, paramPort), 2000);
                     }
