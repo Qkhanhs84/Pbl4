@@ -14,6 +14,13 @@ import javafx.scene.image.ImageView;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
+import org.opencv.core.Core;
+import org.opencv.core.Mat;
+import org.opencv.core.MatOfByte;
+import org.opencv.core.Size;
+import org.opencv.imgcodecs.Imgcodecs;
+import org.opencv.videoio.VideoWriter;
+
 
 import java.awt.*;
 import java.io.*;
@@ -55,6 +62,9 @@ public class Server extends Application implements Runnable {
 
 
     public static void main(String[] args) {
+        System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
+
+
         Server server = new Server();
         Server.instance = server;
         launch(args);
@@ -466,11 +476,30 @@ public class Server extends Application implements Runnable {
                 ex.printStackTrace();
             }
         });
-        VBox buttonBox = new VBox(10, imgClient.getSaveButton(), imgClient.getOpenFolderButton());
+        imgClient.setRecordButton(new Button("Record"));
+        imgClient.getRecordButton().setPrefSize(150, 40);
+        imgClient.getRecordButton().setStyle(
+                "-fx-background-color: #FDE8E8; -fx-text-fill: #4C4C4C; " +
+                        "-fx-font-size: 16px; -fx-background-radius: 5px; -fx-border-radius: 5px; " +
+                        "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.5), 5, 0.5, 0, 1);"
+        );
+        imgClient.getRecordButton().setOnMouseEntered(e -> imgClient.getRecordButton().setStyle(
+                "-fx-background-color: #F9C5C5; -fx-text-fill: #4C4C4C; " +
+                        "-fx-font-size: 16px; -fx-background-radius: 5px; -fx-border-radius: 5px; " +
+                        "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.75), 8, 0.7, 0, 2);"
+        ));
+        imgClient.getRecordButton().setOnMouseExited(e -> imgClient.getRecordButton().setStyle(
+                "-fx-background-color: #FDE8E8; -fx-text-fill: #4C4C4C; " +
+                        "-fx-font-size: 16px; -fx-background-radius: 5px; -fx-border-radius: 5px; " +
+                        "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.5), 5, 0.5, 0, 1);"
+        ));
+
+
+        VBox buttonBox = new VBox(10, imgClient.getSaveButton(), imgClient.getOpenFolderButton(),imgClient.getRecordButton());
 
 
 
-        propertyBox.getChildren().addAll(imgClient.getTitle(),imgClient.getLbTimeConnect(),sizeBox, freqBox,compressionBox, imgClient.getSaveButton(), imgClient.getOpenFolderButton());
+        propertyBox.getChildren().addAll(imgClient.getTitle(),imgClient.getLbTimeConnect(),sizeBox, freqBox,compressionBox, imgClient.getSaveButton(), imgClient.getOpenFolderButton(), imgClient.getRecordButton());
         imgClient.setImageView(new ImageView(imgClient.getImage()));
         imgClient.getImageView().setStyle("-fx-border-color: #09D1C7; -fx-border-width: 2px; -fx-border-radius: 15px; -fx-background-radius: 15px;");
         VBox imageBox = new VBox(10, imgClient.getImageView());
@@ -562,26 +591,22 @@ class ImgClient implements Runnable{
     private Socket paramSocket;
     private String clientIP;
     private Button saveButton;
+    private Button openFolderButton;
+    private Button recordButton;
     private String pathImage;
     private Label timeConnectLb;
-
-    public boolean isSaved() {
-        return isSaved;
-    }
-
-    public void setSaved(boolean saved) {
-        isSaved = saved;
-    }
-
+    private TextField txtWidth;
+    private TextField txtHeight;
+    private TextField txtFrequency;
+    private TextField txtCompression;
+    private Label title;
     private boolean isSaved  ;
+    private HBox mainBox;
+    private ImageView imageView;
+    private Image image;
 
-    public Button getSaveButton() {
-        return saveButton;
-    }
 
-    public void setSaveButton(Button saveButton) {
-        this.saveButton = saveButton;
-    }
+
 
     public ImgClient(Socket imgSocket, Socket paramSocket) {
         this.imgSocket = imgSocket;
@@ -597,8 +622,31 @@ class ImgClient implements Runnable{
         this.mainBox = Server.getInstance().createClientScene(this);
         this.pathImage = path + clientIP;
     }
-    private ImageView imageView;
-    private Image image;
+
+    public boolean isSaved() {
+        return isSaved;
+    }
+
+    public void setSaved(boolean saved) {
+        isSaved = saved;
+    }
+
+    public Button getRecordButton() {
+        return recordButton;
+    }
+
+    public void setRecordButton(Button recordButton) {
+        this.recordButton = recordButton;
+    }
+
+    public Button getSaveButton() {
+        return saveButton;
+    }
+
+    public void setSaveButton(Button saveButton) {
+        this.saveButton = saveButton;
+    }
+
 
     public Label getTitle() {
         return title;
@@ -607,7 +655,7 @@ class ImgClient implements Runnable{
     public void setTitle(Label title) {
         this.title = title;
     }
-    private HBox mainBox;
+
 
     public HBox getMainBox() {
         return mainBox;
@@ -617,12 +665,7 @@ class ImgClient implements Runnable{
         this.mainBox = mainBox;
     }
 
-    private TextField txtWidth;
-    private TextField txtHeight;
-    private TextField txtFrequency;
-    private TextField txtCompression;
-    private Label title;
-    private Button openFolderButton;
+
 
     public TextField getTxtCompression() {
         return txtCompression;
@@ -725,19 +768,26 @@ class ImgClient implements Runnable{
                     if (!clientDir.exists()) {
                         clientDir.mkdir();
                     }
+
+
                     int count = 1;
                     DataInputStream dis = new DataInputStream(imgSocket.getInputStream());
+
+
+
                     while (true) {
                         int len = dis.readInt();
                         System.out.println(len);
                         byte[] data = new byte[len];
                         dis.readFully(data);
                         image = new Image(new ByteArrayInputStream(data));
+
                         if (isSaved) {
                             String imagePath = pathImage+ "\\image" + count++ + ".jpg";
                             try (FileOutputStream fos = new FileOutputStream(imagePath)) {
                                 fos.write(data);
                             }
+
                         }
 
 
@@ -747,7 +797,10 @@ class ImgClient implements Runnable{
                         });
 
 
+
                     }
+
+
                 } catch (Exception e) {
                     Platform.runLater(() -> {
                         Server.getInstance().removeClient(this);
@@ -783,3 +836,5 @@ class ImgClient implements Runnable{
     }
 
 }
+
+

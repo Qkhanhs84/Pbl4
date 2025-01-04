@@ -41,6 +41,7 @@ public class Client2 extends Application implements Runnable {
     private static VideoCapture webcam;
     private static Socket imgSocket;
     private static Socket paramSocket;
+
     private Slider compressSlider;
     private Button switchButton;
     private TextField txtWidth, txtHeight, txtFreq;
