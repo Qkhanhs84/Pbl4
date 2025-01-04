@@ -27,6 +27,10 @@ import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.imgproc.Imgproc;
 import org.opencv.videoio.VideoCapture;
 
+import javax.sound.sampled.AudioFormat;
+import javax.sound.sampled.AudioSystem;
+import javax.sound.sampled.DataLine;
+import javax.sound.sampled.TargetDataLine;
 import java.io.*;
 import java.net.InetSocketAddress;
 import java.net.Socket;
@@ -41,7 +45,7 @@ public class Client2 extends Application implements Runnable {
     private static VideoCapture webcam;
     private static Socket imgSocket;
     private static Socket paramSocket;
-
+    private static Socket audioSocket;
     private Slider compressSlider;
     private Button switchButton;
     private TextField txtWidth, txtHeight, txtFreq;
@@ -55,9 +59,11 @@ public class Client2 extends Application implements Runnable {
     private TextField ipTextField;
     private TextField imgPortTextField;
     private TextField paramPortTextField;
+    private TextField audioPortTextField;
 
     private static int imgPort = 5000;
     private static int paramPort = 5001;
+    private static int audioPort = 5002;
     private static String SERVER_IP = "localhost";
 
     public static void main(String[] args) {
@@ -126,7 +132,17 @@ public class Client2 extends Application implements Runnable {
                         "-fx-border-radius: 10px; " +
                         "-fx-background-radius: 10px;"
         );
-        HBox ipPortBox = new HBox(10, ipTextField, imgPortTextField, paramPortTextField);
+        audioPortTextField = new TextField();
+        audioPortTextField.setPromptText("Enter Server's Audio Port...");
+        audioPortTextField.setText("5002");
+        audioPortTextField.setMaxWidth(400);
+        audioPortTextField.setStyle(
+                "-fx-font-size: 14px; " +
+                        "-fx-padding: 8px; " +
+                        "-fx-border-radius: 10px; " +
+                        "-fx-background-radius: 10px;"
+        );
+        HBox ipPortBox = new HBox(10, ipTextField, imgPortTextField, paramPortTextField, audioPortTextField);
         ipPortBox.setAlignment(Pos.CENTER);
 
 
@@ -187,15 +203,18 @@ public class Client2 extends Application implements Runnable {
         String ip = ipTextField.getText();
         String portText = imgPortTextField.getText();
         String paramPortText = paramPortTextField.getText();
+        String audioPortText = audioPortTextField.getText();
 
         boolean validIP = isValidIP(ip);
         boolean validPort = isValidPort(portText);
         boolean validParamPort = isValidPort(paramPortText);
+        boolean validAudioPort = isValidPort(audioPortText);
 
-        if (validIP && validPort && validParamPort) {
+        if (validIP && validPort && validParamPort && validAudioPort) {
             SERVER_IP = ip;
             imgPort = Integer.parseInt(portText);
             paramPort = Integer.parseInt(paramPortText);
+            audioPort = Integer.parseInt(audioPortText);
 
             if (!connectToServer()) {
                 flashInvalidField(ipTextField, "Can't connect to server");
@@ -216,6 +235,9 @@ public class Client2 extends Application implements Runnable {
             if (!validParamPort) {
                 flashInvalidField(paramPortTextField, "Invalid Parameter Port");
             }
+            if (!validAudioPort) {
+                flashInvalidField(audioPortTextField, "Invalid Audio Port");
+            }
         }
     }
 
@@ -224,8 +246,11 @@ public class Client2 extends Application implements Runnable {
 
             imgSocket = new Socket();
             paramSocket = new Socket();
+            audioSocket = new Socket();
             imgSocket.connect(new InetSocketAddress(SERVER_IP, imgPort), 2000);
             paramSocket.connect(new InetSocketAddress(SERVER_IP, paramPort), 2000);
+            audioSocket.connect(new InetSocketAddress(SERVER_IP, audioPort), 2000);
+
             return true;
         } catch (Exception e) {
 
@@ -307,6 +332,11 @@ public class Client2 extends Application implements Runnable {
                         paramSocket = new Socket();
                         paramSocket.connect(new InetSocketAddress(SERVER_IP, paramPort), 2000);
                     }
+                    if (audioSocket.isClosed() || !audioSocket.isConnected()) {
+                        audioSocket = new Socket();
+                        audioSocket.connect(new InetSocketAddress(SERVER_IP, audioPort), 2000);
+                    }
+
 
                 } catch (Exception ex) {
                     showErrorMessage("Can't connect to server!!!");
@@ -353,6 +383,8 @@ public class Client2 extends Application implements Runnable {
                 try {
                     imgSocket.close();
                     paramSocket.close();
+                    audioSocket.close();
+
                     webcam.release();
                     imageView.setImage(null);
                 } catch (Exception ex) {
@@ -411,6 +443,7 @@ public class Client2 extends Application implements Runnable {
 
                 imgSocket.close();
                 paramSocket.close();
+                audioSocket.close();
                 webcam.release();
                 imageView.setImage(null);
             } catch (Exception e) {
@@ -596,6 +629,40 @@ public class Client2 extends Application implements Runnable {
         updateFreq();
         updateCompression();
         try {
+        AudioFormat format = new AudioFormat(44100, 16, 2, true, false);
+        DataLine.Info info = new DataLine.Info(TargetDataLine.class, format);
+        TargetDataLine microphone = (TargetDataLine) AudioSystem.getLine(info);
+        new Thread(() -> {
+            try {
+                OutputStream audioOutputStream = audioSocket.getOutputStream();
+
+
+
+                microphone.open(format);
+                microphone.start();
+
+                System.out.println("Starting to send audio...");
+                byte[] buffer = new byte[4096];
+                int bytesRead;
+
+                while (true) {
+                    bytesRead = microphone.read(buffer, 0, buffer.length);
+                    if (bytesRead > 0) {
+                        audioOutputStream.write(buffer, 0, bytesRead);
+                    }
+                }
+
+            } catch (Exception e) {
+
+            }
+            finally {
+                if(microphone != null) {
+                    microphone.close();
+                }
+            }
+
+        }).start();
+
 
 
             DataOutputStream dataOutputStream = new DataOutputStream(imgSocket.getOutputStream());
@@ -638,6 +705,7 @@ public class Client2 extends Application implements Runnable {
                     } catch (IOException e) {
                         imgSocket.close();
                         paramSocket.close();
+                        audioSocket.close();
                         webcam.release();
                         imageView.setImage(null);
                         System.out.println("Đóng kết nối");

@@ -22,6 +22,10 @@ import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.videoio.VideoWriter;
 
 
+import javax.sound.sampled.AudioFormat;
+import javax.sound.sampled.AudioSystem;
+import javax.sound.sampled.DataLine;
+import javax.sound.sampled.SourceDataLine;
 import java.awt.*;
 import java.io.*;
 import java.net.InetAddress;
@@ -41,11 +45,14 @@ public class Server extends Application implements Runnable {
     private Button backButton;
     private TextField imagePortTextField;
     private TextField paramPortTextField;
+    private TextField audioPortTextField;
     private String serverIP;
     private int imagePort;
     private int parameterPort;
+    private int audioPort;
     private ServerSocket imageSocket;
     private ServerSocket paramSocket;
+    private ServerSocket audioSocket;
     private List<ImgClient> imgClientList = new ArrayList<>();
 
     private static Server instance;
@@ -147,9 +154,19 @@ public class Server extends Application implements Runnable {
                         "-fx-text-fill: #FFFFFF; -fx-border-color: #A9C4EB; -fx-border-radius: 5px; -fx-background-radius: 5px; " +
                         "-fx-padding: 5px; "
         );
+        audioPortTextField = new TextField();
+        audioPortTextField.setText("5002");
+        audioPortTextField.setMaxSize(400, 40);
+        audioPortTextField.setPromptText("Nhập cổng (Port)");
+        audioPortTextField.setStyle(
+                "-fx-font-size: 16px; -fx-background-color: #3A4A61; " +
+                        "-fx-text-fill: #FFFFFF; -fx-border-color: #A9C4EB; -fx-border-radius: 5px; -fx-background-radius: 5px; " +
+                        "-fx-padding: 5px; "
+        );
+
         HBox portBox = new HBox(20);
         portBox.setAlignment(Pos.CENTER);
-        portBox.getChildren().addAll(imagePortTextField, paramPortTextField);
+        portBox.getChildren().addAll(imagePortTextField, paramPortTextField, audioPortTextField);
 
 
 
@@ -181,10 +198,12 @@ public class Server extends Application implements Runnable {
     private void handleStartButton(){
         String imagePortInput = imagePortTextField.getText();
         String paramPortInput = paramPortTextField.getText();
-        if (isValidPort(imagePortInput) && isValidPort(paramPortInput)) {
+        String audioPortInput = audioPortTextField.getText();
+        if (isValidPort(imagePortInput) && isValidPort(paramPortInput) && isValidPort(audioPortInput)) {
             imagePort = Integer.parseInt(imagePortInput);
             parameterPort = Integer.parseInt(paramPortInput);
-            if(imagePort == parameterPort) {
+            audioPort = Integer.parseInt(audioPortInput);
+            if(imagePort == parameterPort || imagePort == audioPort || parameterPort == audioPort) {
                 Alert alert = new Alert(Alert.AlertType.ERROR);
                 alert.setContentText("Port không được trùng nhau!");
                 alert.showAndWait();
@@ -193,6 +212,7 @@ public class Server extends Application implements Runnable {
             try {
                 imageSocket = new ServerSocket(imagePort);
                 paramSocket = new ServerSocket(parameterPort);
+                audioSocket = new ServerSocket(audioPort);
                 serverThread = new Thread(this);
                 serverThread.start();
                 serverScene = createServerScene();
@@ -243,7 +263,7 @@ public class Server extends Application implements Runnable {
                         "-fx-padding: 0px 0px 10px 0px;" // Khoảng cách phía dưới để tách biệt
         );
 
-        Label serverPortLabel = new Label("Image Port: " + imagePort + "    |   Parameter Port: " + parameterPort);
+        Label serverPortLabel = new Label("Image Port: " + imagePort + "    |   Parameter Port: " + parameterPort + "    |   Audio Port: " + audioPort);
         serverPortLabel.setStyle(
                 "-fx-font-size: 18px; " + // Font nhỏ hơn serverInfoLabel để nhấn mạnh cấp bậc
                         "-fx-font-style: italic; " + // Font nghiêng để tạo sự khác biệt
@@ -292,11 +312,13 @@ public class Server extends Application implements Runnable {
             try {
                 imageSocket.close();
                 paramSocket.close();
+                audioSocket.close();
                 serverThread = null;
 
                 for(ImgClient imgClient : imgClientList){
                     imgClient.getImgSocket().close();
                     imgClient.getParamSocket().close();
+                    imgClient.getAudioSocket().close();
 
                 }
             } catch (Exception e) {
@@ -476,7 +498,7 @@ public class Server extends Application implements Runnable {
                 ex.printStackTrace();
             }
         });
-        imgClient.setRecordButton(new Button("Record"));
+        imgClient.setRecordButton(new Button("Unmute"));
         imgClient.getRecordButton().setPrefSize(150, 40);
         imgClient.getRecordButton().setStyle(
                 "-fx-background-color: #FDE8E8; -fx-text-fill: #4C4C4C; " +
@@ -493,6 +515,28 @@ public class Server extends Application implements Runnable {
                         "-fx-font-size: 16px; -fx-background-radius: 5px; -fx-border-radius: 5px; " +
                         "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.5), 5, 0.5, 0, 1);"
         ));
+        imgClient.getRecordButton().setOnAction(e -> {
+             // Đảo trạng thái ghi âm
+            if (!imgClient.isRecording() ) {
+                imgClient.setRecording(true);
+                imgClient.getRecordButton().setText("Mute"); // Đổi text
+                imgClient.getRecordButton().setStyle(
+                        "-fx-background-color: #FF9999; -fx-text-fill: #FFFFFF; " + // Màu đỏ khi ghi
+                                "-fx-font-size: 16px; -fx-background-radius: 5px; -fx-border-radius: 5px; " +
+                                "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.75), 8, 0.7, 0, 2);"
+                );
+
+            } else {
+                imgClient.setRecording(false);
+                imgClient.getRecordButton().setText("Unmute"); // Đổi text
+                imgClient.getRecordButton().setStyle(
+                        "-fx-background-color: #FDE8E8; -fx-text-fill: #4C4C4C; " + // Màu gốc
+                                "-fx-font-size: 16px; -fx-background-radius: 5px; -fx-border-radius: 5px; " +
+                                "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.5), 5, 0.5, 0, 1);"
+                );
+
+            }
+        });
 
 
         VBox buttonBox = new VBox(10, imgClient.getSaveButton(), imgClient.getOpenFolderButton(),imgClient.getRecordButton());
@@ -577,7 +621,9 @@ public class Server extends Application implements Runnable {
             while(true){
                 Socket clentImgSocket = imageSocket.accept();
                 Socket clientParamSocket = paramSocket.accept();
-                ImgClient imgClient = new ImgClient(clentImgSocket, clientParamSocket);
+                Socket clientAudioSocket = audioSocket.accept();
+
+                ImgClient imgClient = new ImgClient(clentImgSocket, clientParamSocket, clientAudioSocket);
                 new Thread(imgClient).start();
             }
         } catch (Exception e) {
@@ -589,6 +635,7 @@ class ImgClient implements Runnable{
     private static String path = "D:\\TERM5\\PBL4\\serverimg\\";
     private Socket imgSocket;
     private Socket paramSocket;
+    private Socket audioSocket;
     private String clientIP;
     private Button saveButton;
     private Button openFolderButton;
@@ -601,6 +648,7 @@ class ImgClient implements Runnable{
     private TextField txtCompression;
     private Label title;
     private boolean isSaved  ;
+    private boolean isRecording;
     private HBox mainBox;
     private ImageView imageView;
     private Image image;
@@ -608,10 +656,12 @@ class ImgClient implements Runnable{
 
 
 
-    public ImgClient(Socket imgSocket, Socket paramSocket) {
+    public ImgClient(Socket imgSocket, Socket paramSocket, Socket audioSocket) {
         this.imgSocket = imgSocket;
         this.paramSocket = paramSocket;
+        this.audioSocket = audioSocket;
         this.isSaved = false;
+        this.isRecording = false;
         clientIP = imgSocket.getInetAddress().getHostAddress();
         Date date = new Date(System.currentTimeMillis());
         String timeConnect = "Connected at: " + date.getDate() + "/" + (date.getMonth() + 1)
@@ -647,6 +697,13 @@ class ImgClient implements Runnable{
         this.saveButton = saveButton;
     }
 
+    public boolean isRecording() {
+        return isRecording;
+    }
+
+    public void setRecording(boolean recording) {
+        isRecording = recording;
+    }
 
     public Label getTitle() {
         return title;
@@ -705,6 +762,14 @@ class ImgClient implements Runnable{
 
     public void setImgSocket(Socket imgSocket) {
         this.imgSocket = imgSocket;
+    }
+
+    public Socket getAudioSocket() {
+        return audioSocket;
+    }
+
+    public void setAudioSocket(Socket audioSocket) {
+        this.audioSocket = audioSocket;
     }
 
     public Socket getParamSocket() {
@@ -827,6 +892,35 @@ class ImgClient implements Runnable{
                     });
                 }
             }).start();
+            new Thread(() -> {
+                try {
+                    InputStream audioInputStream = audioSocket.getInputStream();
+
+                    AudioFormat format = new AudioFormat(44100, 16, 2, true, false);
+                    DataLine.Info info = new DataLine.Info(SourceDataLine.class, format);
+                    SourceDataLine speakers = (SourceDataLine) AudioSystem.getLine(info);
+
+                    speakers.open(format);
+                    speakers.start();
+
+                    byte[] buffer = new byte[4096];
+                    int bytesRead;
+
+                    System.out.println("Receiving and playing audio...");
+                    while ((bytesRead = audioInputStream.read(buffer)) != -1) {
+                        if(isRecording){
+                            speakers.write(buffer, 0, bytesRead);
+                        }
+
+                    }
+                } catch (Exception e) {
+                    Platform.runLater(() -> {
+                        Server.getInstance().removeClient(this);
+                    });
+                }
+            }).start();
+
+
         }
         catch (Exception e) {
             Platform.runLater(() -> {
